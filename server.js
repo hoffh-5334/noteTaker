@@ -2,9 +2,9 @@ const PORT = process.env.PORT || 3001;
 const fs = require('fs');
 const path = require('path');
 const express = require('express');
+
 const app = express();
 const notesList = require('./db/db.json');
-const uuid = require('./helpers/uuid')
 
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
@@ -51,22 +51,27 @@ app.post('/api/notes', (req, res) => {
     req.body.id = uuid();
 });
 
-app.delete('/api/notes/:id', (req, res) => {
-  fs.readFile("./db/db.json", function (err, result) {
-    const oldNote = JSON.parse(result);
+//delete functionality is not working properly
+function deleteNote(id, notesArray) {
+    for (let i = 0; i < notesArray.length; i++) {
+        let note = notesArray[i];
 
-    const updatedNotes = [];
-    for (let i = 0; i < oldNote.length; i++) {
-      const element = oldNote[i];
+        if (note.id == id) {
+            notesArray.splice(i, 1);
+            fs.writeFileSync(
+                path.join(__dirname, './db/db.json'),
+                JSON.stringify(notesArray, null, 2)
+            );
 
-      if (oldNote[i].id != req.params.id) {
-        updatedNotes.push(oldNote[i])
-      }
+            break;
+        }
     }
-    fs.writeFile("./db/db.json", JSON.stringify(updatedNotes), (err, result) => { res.json(updatedNotes) })
-  })
+}
 
-})
+app.delete('/api/notes/:id', (req, res) => {
+    deleteNote(req.params.id, notesList);
+    res.json(true);
+});
 
 app.listen(PORT, () => {
     console.log(`API server now on port ${PORT}!`);
