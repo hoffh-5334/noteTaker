@@ -4,6 +4,7 @@ const path = require('path');
 const express = require('express');
 const app = express();
 const notesList = require('./db/db.json');
+const uuid = require('./helpers/uuid')
 
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
@@ -14,15 +15,15 @@ app.get('/api/notes', (req, res) => {
 });
 
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, './public/index.html'));
+    res.sendFile(path.join(__dirname, '/public/index.html'));
 });
 
 app.get('/notes', (req, res) => {
-    res.sendFile(path.join(__dirname, './public/notes.html'));
+    res.sendFile(path.join(__dirname, '/public/notes.html'));
 });
 
 app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, './public/index.html'));
+    res.sendFile(path.join(__dirname, '/public/index.html'));
 });
 
 function createNote(body, notesArray) {
@@ -47,28 +48,25 @@ function createNote(body, notesArray) {
 app.post('/api/notes', (req, res) => {
     const createdNote = createNote(req.body, notesList);
     res.json(createdNote);
+    req.body.id = uuid();
 });
-
-function deleteNotes(id, notesArray) {
-    for (let i = 0; i < notesArray.length; i++) {
-        let note = notesArray[i];
-
-        if (note.id == id) {
-            notesArray.splice(i, 1);
-            fs.writeFileSync(
-                path.join(__dirname, './db/db.json'),
-                JSON.stringify(notesArray, null, 2)
-            );
-
-            break;
-        }
-    }
-}
 
 app.delete('/api/notes/:id', (req, res) => {
-    deleteNotes(req.params.id, notesList);
-    res.json(true);
-});
+  fs.readFile("./db/db.json", function (err, result) {
+    const oldNote = JSON.parse(result);
+
+    const updatedNotes = [];
+    for (let i = 0; i < oldNote.length; i++) {
+      const element = oldNote[i];
+
+      if (oldNote[i].id != req.params.id) {
+        updatedNotes.push(oldNote[i])
+      }
+    }
+    fs.writeFile("./db/db.json", JSON.stringify(updatedNotes), (err, result) => { res.json(updatedNotes) })
+  })
+
+})
 
 app.listen(PORT, () => {
     console.log(`API server now on port ${PORT}!`);
